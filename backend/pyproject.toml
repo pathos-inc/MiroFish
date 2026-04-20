@@ -22,6 +22,13 @@ dependencies = [
     # OASIS 社交媒体模拟
     "camel-oasis==0.2.5",
     "camel-ai==0.2.78",
+
+    # Direct pin so [tool.uv.sources] below forces the CPU-only wheel onto
+    # the transitive torch requirement pulled in by camel-ai → OASIS.
+    # Without this pin the override is ignored (uv only applies sources to
+    # direct project deps), the GPU wheel wins, and the image balloons
+    # by ~6 GB of CUDA runtimes.
+    "torch>=2.4.0",
     
     # 文件处理
     "PyMuPDF>=1.24.0",
@@ -53,3 +60,25 @@ dev = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
+
+# ──────────────────────────────────────────────────────────────────────────────
+# CPU-only PyTorch wheels
+#
+# torch arrives transitively via camel-ai → OASIS, and by default uv pulls the
+# CUDA-enabled wheel plus ~4.3 GB of nvidia-* runtimes. OASIS / camel-ai use
+# torch only for tensor math on the Python side — no CUDA kernels are invoked
+# when LLM calls go out to an OpenAI-compatible endpoint. Forcing torch (and
+# its CUDA-bearing cousins) to resolve against PyPI's CPU index drops the
+# image size by ~6 GB without affecting any code path MiroFish actually runs.
+#
+# Override with a build-time index-url if GPU is ever needed.
+# ──────────────────────────────────────────────────────────────────────────────
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+torchvision = { index = "pytorch-cpu" }
+torchaudio = { index = "pytorch-cpu" }
