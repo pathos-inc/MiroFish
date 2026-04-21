@@ -872,14 +872,11 @@ class ReportAgent:
     3. 反思阶段：检查内容完整性和准确性
     """
     
-    # 最大工具调用次数（每个章节）
-    MAX_TOOL_CALLS_PER_SECTION = 5
-    
-    # 最大反思轮数
-    MAX_REFLECTION_ROUNDS = 3
-    
-    # 对话中的最大工具调用次数
-    MAX_TOOL_CALLS_PER_CHAT = 2
+    # Read from Config / env vars so values can be tuned without code changes.
+    # See config.py for the full list of REPORT_AGENT_* variables.
+    MAX_TOOL_CALLS_PER_SECTION = Config.REPORT_AGENT_MAX_TOOL_CALLS
+    MAX_REFLECTION_ROUNDS      = Config.REPORT_AGENT_MAX_REFLECTION_ROUNDS
+    MAX_TOOL_CALLS_PER_CHAT    = 2
     
     def __init__(
         self, 
@@ -1170,7 +1167,7 @@ class ReportAgent:
             total_edges=context.get('graph_statistics', {}).get('total_edges', 0),
             entity_types=list(context.get('graph_statistics', {}).get('entity_types', {}).keys()),
             total_entities=context.get('total_entities', 0),
-            related_facts_json=json.dumps(context.get('related_facts', [])[:10], ensure_ascii=False, indent=2),
+            related_facts_json=json.dumps(context.get('related_facts', [])[:Config.REPORT_AGENT_PLAN_FACTS_LIMIT], ensure_ascii=False, indent=2),
         )
 
         try:
@@ -1179,7 +1176,8 @@ class ReportAgent:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=0.3
+                temperature=Config.REPORT_AGENT_TEMPERATURE,
+                max_tokens=Config.REPORT_AGENT_MAX_TOKENS,
             )
             
             if progress_callback:
@@ -1284,8 +1282,8 @@ class ReportAgent:
         
         # ReACT循环
         tool_calls_count = 0
-        max_iterations = 5  # 最大迭代轮数
-        min_tool_calls = 3  # 最少工具调用次数
+        max_iterations = self.MAX_TOOL_CALLS_PER_SECTION  # set via REPORT_AGENT_MAX_TOOL_CALLS
+        min_tool_calls  = Config.REPORT_AGENT_MIN_TOOL_CALLS  # set via REPORT_AGENT_MIN_TOOL_CALLS
         conflict_retries = 0  # 工具调用与Final Answer同时出现的连续冲突次数
         used_tools = set()  # 记录已调用过的工具名
         all_tools = {"insight_forge", "panorama_search", "quick_search", "interview_agents"}
@@ -1304,8 +1302,8 @@ class ReportAgent:
             # 调用LLM
             response = self.llm.chat(
                 messages=messages,
-                temperature=0.5,
-                max_tokens=4096
+                temperature=Config.REPORT_AGENT_TEMPERATURE,
+                max_tokens=Config.REPORT_AGENT_MAX_TOKENS,
             )
 
             # 检查 LLM 返回是否为 None（API 异常或内容为空）
@@ -1502,11 +1500,11 @@ class ReportAgent:
         # 达到最大迭代次数，强制生成内容
         logger.warning(t('report.sectionMaxIter', title=section.title))
         messages.append({"role": "user", "content": REACT_FORCE_FINAL_MSG})
-        
+
         response = self.llm.chat(
             messages=messages,
-            temperature=0.5,
-            max_tokens=4096
+            temperature=Config.REPORT_AGENT_TEMPERATURE,
+            max_tokens=Config.REPORT_AGENT_MAX_TOKENS,
         )
 
         # 检查强制收尾时 LLM 返回是否为 None
