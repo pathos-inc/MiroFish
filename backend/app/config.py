@@ -63,10 +63,18 @@ class Config:
         'TREND', 'REFRESH', 'DO_NOTHING', 'FOLLOW', 'MUTE'
     ]
     
-    # Report Agent配置
-    REPORT_AGENT_MAX_TOOL_CALLS = int(os.environ.get('REPORT_AGENT_MAX_TOOL_CALLS', '5'))
+    # Report Agent configuration
+    # --- Token cost levers (most impactful first) ---
+    # REPORT_AGENT_MAX_TOKENS        lower value = fewer output tokens per LLM call   (e.g. 2048)
+    # REPORT_AGENT_MAX_TOOL_CALLS    fewer tool calls per section = shorter context    (e.g. 3)
+    # REPORT_AGENT_MIN_TOOL_CALLS    minimum required before Final Answer is accepted  (e.g. 1)
+    # REPORT_AGENT_PLAN_FACTS_LIMIT  facts sent to the outline planner                 (e.g. 5)
+    REPORT_AGENT_MAX_TOOL_CALLS        = int(os.environ.get('REPORT_AGENT_MAX_TOOL_CALLS', '5'))
+    REPORT_AGENT_MIN_TOOL_CALLS        = int(os.environ.get('REPORT_AGENT_MIN_TOOL_CALLS', '3'))
     REPORT_AGENT_MAX_REFLECTION_ROUNDS = int(os.environ.get('REPORT_AGENT_MAX_REFLECTION_ROUNDS', '2'))
-    REPORT_AGENT_TEMPERATURE = float(os.environ.get('REPORT_AGENT_TEMPERATURE', '0.5'))
+    REPORT_AGENT_TEMPERATURE           = float(os.environ.get('REPORT_AGENT_TEMPERATURE', '0.5'))
+    REPORT_AGENT_MAX_TOKENS            = int(os.environ.get('REPORT_AGENT_MAX_TOKENS', '4096'))
+    REPORT_AGENT_PLAN_FACTS_LIMIT      = int(os.environ.get('REPORT_AGENT_PLAN_FACTS_LIMIT', '10'))
     
     @classmethod
     def validate(cls):
